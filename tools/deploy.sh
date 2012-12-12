@@ -9,6 +9,8 @@ ENYO="$TOOLS/../enyo"
 # deploy script location
 DEPLOY="$ENYO/tools/deploy.js"
 
+( cd `dirname $0` && cd ../flash-mini-mp3 && echo "try to build flash-mini-mp3" && make )
+
 # check for node, but quietly
 if command -v node >/dev/null 2>&1; then
 	# use node to invoke deploy with imported parameters

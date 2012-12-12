@@ -1,0 +1,97 @@
+
+.flash-container {
+	position: fixed;
+	left: 0; right: 0; top: 0; bottom: 0;
+	z-index:99;
+}
+.flash-container > div {
+	position: absolute;
+	left: 0; right: 0; top: 0; bottom: 0;
+	padding: 20px;
+	width: 500px;
+	height: 150px;
+	margin: auto;
+	background: white;
+	color: black;
+}
+
+.media-player object {
+	margin: 0px auto;
+	display: block;
+}
+
+.media-player .media-player-slider .onyx-progress-bar-bar {
+	background-color: #f44;
+}
+
+.media-library-list {
+	background-color: #333;
+}
+
+.media-library-item {
+	background-color: #333;
+	border-top: 1px solid silver;
+	font-size: 12px;
+	padding: 4px;
+}
+
+.media-library-item.media-library-selected {
+	background-color: #666;
+}
+
+.media-library-item div {
+	display: inline-block;
+	vertical-align: top;
+	overflow-x: hidden;
+	overflow-y: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: silver;
+	padding: 2px 0;
+}
+
+.media-library-item .media-library-play {
+	width: 20px;
+	padding: 2px 0;
+	font-size: 12px;
+	text-align: center;
+}
+
+.media-library-item .media-library-index {
+	color: lightgrey;
+	width: 3em;
+	text-align: right;
+	padding-right: 2px;
+}
+
+.media-library-item .media-library-track {
+	width: 2em;
+	text-align: right;
+	padding-right: 2px;
+}
+
+.media-library-item .media-library-artist {
+	width: 20em;
+}
+
+.media-library-item .media-library-album {
+	width: 20em;
+}
+
+.media-library-item .media-library-title {
+	min-width: 20em;
+}
+
+.media-library-item .media-library-pull-right {
+	width: 19em;
+	float: right;
+}
+
+.media-library-item .media-library-genre {
+	width: 15em;
+}
+
+.media-library-item .media-library-length {
+	width: 4em;
+	text-align: right;
+}
