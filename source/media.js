@@ -134,7 +134,7 @@ enyo.kind({
 			if (library_search(this.db, f, q)) {
 				if (this.selectedFile !== false && this.selectedFile === f) {
 					this.selectedFiltered = this.filtered.length;
-					this.list.select(this.selectedFiltered);
+					this.$.list.select(this.selectedFiltered);
 				}
 				this.filtered.push(f);
 			}
