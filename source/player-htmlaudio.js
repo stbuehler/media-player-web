@@ -132,7 +132,9 @@ enyo.kind({
             this._wantPlay = false;
             a.pause();
         }
-        a.currentTime = 0;
+        try {
+            a.currentTime = 0;
+        } catch (e) {}
     },
 
 

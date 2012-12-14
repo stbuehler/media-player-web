@@ -44,7 +44,7 @@ enyo.kind({
 	classes: "media-library enyo-fit",
 	layoutKind: "FittableRowsLayout",
 	components: [
-		{name: "player", kind: "Media.Player", onEnded: "next" },
+		{name: "player", kind: "Media.Player", onEnded: "next", onNext: "next", onPrev: "prev" },
 		{kind: "onyx.Toolbar", layoutKind: "FittableColumnsLayout", components: [
 			{kind: "onyx.InputDecorator", fit: true, noStretch: true, layoutKind: "FittableColumnsLayout", components: [
 				{name: "search", kind: "onyx.Input", placeholder: "Search...", fit: true, oninput: "changedSearch", onkeydown: "searchKeyDown"},
@@ -53,7 +53,7 @@ enyo.kind({
 		]},
 		{name: "list", kind: "List", count: 0, multiSelect: false, fit: true, classes: "media-library-list", onSetupItem: "setupItem", components: [
 			{name: "item", classes: "media-library-item enyo-border-box", components: [
-				{name: "play", kind: "onyx.Button", classes: "media-library-play onyx-affirmative", content: "P", ontap: "playTapped"},
+				{name: "play", classes: "enyo-unselectable media-library-play", ontap: "playTapped"},
 				{name: "index", classes: "media-library-index"},
 				{name: "track", classes: "media-library-track"},
 				{name: "artist", classes: "media-library-artist"},
@@ -110,11 +110,18 @@ enyo.kind({
 	},
 
 	playTapped: function(inSender, inEvent) {
+		var list = this.$.list, oldSelected = this.selectedFiltered;
+
 		var player = this.$.player;
 		this.selectedFiltered = inEvent.rowIndex;
+		this.$.player.setEnablePrevNext(false !== this.selectedFiltered);
 		this.selectedFile = this.filtered[this.selectedFiltered];
+		player.stop();
 		player.setSource(this.db.files[this.selectedFile].url);
 		player.play();
+
+		list.renderRow(oldSelected);
+		list.renderRow(this.selectedFiltered);
 	},
 
 	refreshFilter: function() {
@@ -127,10 +134,12 @@ enyo.kind({
 			if (library_search(this.db, f, q)) {
 				if (this.selectedFile !== false && this.selectedFile === f) {
 					this.selectedFiltered = this.filtered.length;
+					this.list.select(this.selectedFiltered);
 				}
 				this.filtered.push(f);
 			}
 		}
+		this.$.player.setEnablePrevNext(false !== this.selectedFiltered);
 		this.$.list.setCount(this.filtered.length);
 		this.$.list.reset();
 	},
@@ -164,20 +173,30 @@ enyo.kind({
 		}
 	},
 
-	next: function() {
-		var list = this.$.list, oldSelected = this.selectedFiltered;
+	seek: function(offset) {
+		var list = this.$.list, oldSelected = this.selectedFiltered, l = this.filtered.length;
 		this.selectedFile = false;
 		if (false === this.selectedFiltered) return;
-		this.selectedFiltered = (this.selectedFiltered + 1) % this.filtered.length;
+		this.selectedFiltered = (((this.selectedFiltered + offset) % l) + l) % l;
+
+		var player = this.$.player;
+		this.selectedFile = this.filtered[this.selectedFiltered];
+		player.setSource(this.db.files[this.selectedFile].url);
+		player.stop(); /* replay from beginning */
+		player.play();
 
 		list.select(this.selectedFiltered);
 		list.renderRow(oldSelected);
 		list.renderRow(this.selectedFiltered);
 
-		var player = this.$.player;
-		this.selectedFile = this.filtered[this.selectedFiltered];
-		player.setSource(this.db.files[this.selectedFile].url);
-		player.play();
+		this.$.player.setEnablePrevNext(false !== this.selectedFiltered);
+	},
+
+	next: function() {
+		this.seek(1);
+	},
+	prev: function() {
+		this.seek(-1);
 	},
 
 	setDB: function(db) {

@@ -5,11 +5,13 @@ enyo.kind({
     classes: "media-player",
     components: [
         {kind: "onyx.Toolbar", layoutKind: "FittableColumnsLayout", noStretch: true, components: [
-            {name: "play", kind: "onyx.Button", classes: "media-player-play onyx-affirmative", disabled: true, content: "P", ontap: "playTapped"},
-            {name: "stop", kind: "onyx.Button", classes: "media-player-stop onyx-negative", disabled: true, content: "S", ontap: "stopTapped"},
+            {name: "prev", classes: "media-player-prev enyo-unselectable disabled", ontap: "prevTapped"},
+            {name: "play", classes: "media-player-play enyo-unselectable disabled", ontap: "playTapped"},
+            {name: "stop", classes: "media-player-stop enyo-unselectable disabled", ontap: "stopTapped"},
+            {name: "next", classes: "media-player-next enyo-unselectable disabled", ontap: "nextTapped"},
             {name: "slider", kind: "onyx.Slider", classes: "media-player-slider", fit: true, lockBar: false, onChange: "sliderChange", onChanging: "sliderChanging" },
             {name: "timer", classes: "media-player-slider", content: '' },
-            {name: "mute", kind: "onyx.Button", classes: "media-player-mute onyx-dark", content: "M", ontap: "muteTapped"},
+            {name: "mute", classes: "media-player-mute enyo-unselectable", ontap: "muteTapped"},
             {name: "volume", kind: "onyx.Slider", classes: "media-player-volume", style: "width: 100px;", max: 1, onChange: "volumeChanging", onChanging: "volumeChanging" }
         ]}
     ],
@@ -46,7 +48,13 @@ enyo.kind({
     ],
 
     published: {
-        source: ''
+        source: '',
+        enablePrevNext: false
+    },
+
+    events: {
+        onPrev: "",
+        onNext: ""
     },
 
     create: function() {
@@ -66,6 +74,7 @@ enyo.kind({
 
         this.handleDurationChange();
         this.handleVolumeChange();
+        this.enablePrevNextChanged();
     },
     sourceChanged: function() {
         this.$.audio.setSrc(this.source);
@@ -73,32 +82,58 @@ enyo.kind({
     play: function() {
         this.$.audio.play();
     },
+    pause: function() {
+        this.$.audio.pause();
+    },
+    stop: function() {
+        this.$.audio.stop();
+    },
+    enablePrevNextChanged: function() {
+        this.$.prev.addRemoveClass('disabled', !this.enablePrevNext);
+        this.$.next.addRemoveClass('disabled', !this.enablePrevNext);
+    },
 
     playTapped: function() {
+        if (this.$.play.hasClass('disabled')) return;
         if (this.$.audio.paused) {
             this.$.audio.play();
         } else {
             this.$.audio.pause();
         }
+        return true;
     },
     stopTapped: function() {
+        if (this.$.stop.hasClass('disabled')) return;
         this.$.audio.stop();
+        return true;
     },
     sliderChange: function() {
         this.$.audio.setCurrentTime(this.$.slider.value);
         this.setTimerText(this.$.slider.value);
+        return true;
     },
     sliderChanging: function() {
         this.setTimerText(this.$.slider.value);
+        return true;
     },
     muteTapped: function() {
         this.$.audio.setMuted(!this.$.audio.muted);
+        return true;
     },
     volumeChanging: function() {
         var v = this.$.volume.value;
         if (this.$.audio.muted && 0 === v) return;
         this.$.audio.setVolume(v);
         this.$.audio.setMuted(0 === v);
+        return true;
+    },
+    prevTapped: function() {
+        if (this.enablePrevNext) this.doPrev();
+        return true;
+    },
+    nextTapped: function() {
+        if (this.enablePrevNext) this.doNext();
+        return true;
     },
 /*    handleFlashSoundComplete: function() {
         window.setTimeout(function() {
@@ -141,7 +176,7 @@ enyo.kind({
     handleEnded: function() {
     },
     handlePlay: function() {
-        this.$.stop.setDisabled(false);
+        this.$.stop.removeClass('disabled');
         this.$.play.addClass('active');
     },
     handlePause: function() {
@@ -168,9 +203,9 @@ enyo.kind({
         this.$.slider.setProgress(MyTimeRanges.lastEnd(this.$.audio.buffered));
     },
     handleSourceChanged: function() {
-        this.$.play.setDisabled(false);
+        this.$.play.removeClass('disabled');
     },
     handleStop: function() {
-        this.$.stop.setDisabled(true);
+        this.$.stop.addClass('disabled');
     }
 });
