@@ -203,7 +203,7 @@ enyo.kind({
         this.$.slider.setProgress(MyTimeRanges.lastEnd(this.$.audio.buffered));
     },
     handleSourceChanged: function() {
-        this.$.play.removeClass('disabled');
+        this.$.play.addRemoveClass('disabled', !this.source);
     },
     handleStopped: function() {
         this.$.stop.addClass('disabled');
