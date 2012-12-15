@@ -1,4 +1,6 @@
 
+enyo.dispatcher.listen(document, "contextmenu");
+
 function mystr_sort(m, n) {
 	var a = m.toUpperCase(), b = n.toUpperCase(), r;
 	if (a == b) return 0;
@@ -51,7 +53,8 @@ enyo.kind({
 				{kind: "Image", src: "lib/onyx/images/search-input-search.png", style: "height: 20px; width: 20px;"}
 			]}
 		]},
-		{name: "list", kind: "List", count: 0, multiSelect: false, fit: true, classes: "media-library-list", onSetupItem: "setupItem", components: [
+		{name: "list", kind: "List", count: 0, multiSelect: false, fit: true, classes: "media-library-list",
+		 onSetupItem: "setupItem", oncontextmenu: "listContextMenu", components: [
 			{name: "item", classes: "media-library-item enyo-border-box", components: [
 				{name: "play", classes: "enyo-unselectable media-library-play", ontap: "playTapped"},
 				{name: "index", classes: "media-library-index"},
@@ -64,7 +67,11 @@ enyo.kind({
 					{name: "len", classes: "media-library-length"}
 				]}
 			]}
-		]}
+		]},
+		{name: "itemMenu", kind: "onyx.Menu", floating: true, modal: false, components: [
+			{content: "Play"}
+		]},
+		{kind:"enyo.Signals",onkeydown:"handleKeyDown"}
 	],
 	names: [],
 	constructor: function() {
@@ -164,12 +171,13 @@ enyo.kind({
 			this.refreshFilter();
 		}.bind(this), 250);
 	},
-	searchKeyDown: function(event) {
-		if (event.key === "Enter") {
+	searchKeyDown: function(sender, event) {
+		if (event.keyIdentifier === "Enter") {
 			if (false !== this.changedSearchTimer) {
 				window.clearTimeout(this.changedSearchTimer);
 			}
 			this.refreshFilter();
+			return true;
 		}
 	},
 
@@ -210,6 +218,41 @@ enyo.kind({
 		window.setTimeout(function() {
 			this.reflow();
 		}.bind(this), 10);
+	},
+
+	handleKeyDown: function(sender, event) {
+		var l;
+		switch (event.keyIdentifier) {
+		case "PageDown":
+			l = this.$.list;
+			l.setScrollTop(Math.min(l.getScrollBounds().maxTop, l.scrollTop + l.getBounds().height));
+			return true;
+		case "PageUp":
+			l = this.$.list;
+			l.setScrollTop(Math.max(0, l.scrollTop - l.getBounds().height));
+			return true;
+		case "Home":
+			l = this.$.list;
+			l.setScrollTop(0);
+			return true;
+		case "End":
+			l = this.$.list;
+			l.setScrollTop(l.getScrollBounds().maxTop);
+			return true;
+		}
+	},
+
+	listContextMenu: function(sender, event) {
+		if (event.button === 2) {
+			event.preventDefault();
+
+			return true;
+			var pos = {top: event.clientY, left: event.clientX};
+			this.$.itemMenu.activatorOffset = pos;
+			this.$.itemMenu.applyPosition(pos);
+			this.$.itemMenu.show();
+			return true;
+		}
 	}
 });
 
