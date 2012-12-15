@@ -27,7 +27,7 @@ enyo.kind({
 
         /* special events */
         onSourceChanged: "",
-        onStop: ""
+        onStopped: ""
     },
 
     _reset: function() {
@@ -82,7 +82,7 @@ enyo.kind({
         this._reset();
         this.doPlaying();
         this.doPause();
-        this.doStop();
+        this.doStopped();
         this.doDurationChange();
         this.doTimeUpdate();
         this.doProgress();
@@ -159,7 +159,7 @@ enyo.kind({
         var stopped = this.paused && (0 === this.currentTime);
         if (this.stopped !== stopped) {
             this.stopped = stopped;
-            if (this.eventsActive && stopped) this.doStop();
+            if (this.eventsActive && stopped) this.doStopped();
         }
         if (!MyTimeRanges.equal(this.buffered, a.buffered)) {
             this.buffered = a.buffered;

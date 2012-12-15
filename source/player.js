@@ -28,7 +28,7 @@ enyo.kind({
             onWaiting: "handleWaiting",
             onProgress: "handleProgress",
             onSourceChanged: "handleSourceChanged",
-            onStop: "handleStop"
+            onStopped: "handleStopped"
         },
     ],
     flashaudio_chrome: [
@@ -43,7 +43,7 @@ enyo.kind({
             onWaiting: "handleWaiting",
             onProgress: "handleProgress",
             onSourceChanged: "handleSourceChanged",
-            onStop: "handleStop"
+            onStopped: "handleStopped"
         }
     ],
 
@@ -205,7 +205,7 @@ enyo.kind({
     handleSourceChanged: function() {
         this.$.play.removeClass('disabled');
     },
-    handleStop: function() {
+    handleStopped: function() {
         this.$.stop.addClass('disabled');
     }
 });
