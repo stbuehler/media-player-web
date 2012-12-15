@@ -144,7 +144,8 @@
 }
 
 .media-player .media-player-slider .onyx-progress-bar-bar {
-	background-color: #f44;
+	/* background-color: #f44; */
+	background-color: transparent;
 }
 
 .media-library-list {
@@ -171,6 +172,10 @@
 	white-space: nowrap;
 	color: silver;
 	padding: 2px 0;
+}
+
+.media-library-item.media-library-playing div {
+	color: yellow;
 }
 
 .media-library-item .media-library-play {
