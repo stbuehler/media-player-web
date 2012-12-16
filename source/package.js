@@ -7,5 +7,6 @@ enyo.depends(
 	"player-htmlaudio.js",
 	"player-flashaudio.js",
 	"player.js",
+	"playlist.js",
 	"media.js"
 );

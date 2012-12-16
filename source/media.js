@@ -1,46 +1,6 @@
 
 enyo.dispatcher.listen(document, "contextmenu");
 
-function mystr_sort(m, n) {
-	var a = m.toUpperCase(), b = n.toUpperCase(), r;
-	if (a == b) return 0;
-	if (a == '') return 1;
-	if (b == '') return -1;
-	if (0 != (r = a.localeCompare(b))) return r;
-	if (0 != (r = m.localeCompare(n))) return r;
-	return 0;
-}
-
-function library_default_sort(db, i, j) {
-	var a = db.files[i], b = db.files[j];
-	var r;
-	if (0 != (r = mystr_sort(db.artists[a.artist].name, db.artists[b.artist].name))) return r;
-	if (0 != (r = mystr_sort(db.albums[a.album].name, db.albums[b.album].name))) return r;
-	if (a.track != b.track) return a.track - b.track;
-	if (0 != (r = mystr_sort(a.name, b.name))) return r;
-	if (0 != (r = mystr_sort(a.url, b.url))) return r;
-	return 0;
-}
-
-function string_contains(haystack, needle) {
-	if (!haystack) return false;
-	return -1 != haystack.toUpperCase().indexOf(needle);
-}
-
-function library_search(db, i, q) {
-	if (!q) return true;
-	var a = db.files[i];
-	if (string_contains(a.title, q)) return true;
-	if (string_contains(db.artists[a.artist].name, q)) return true;
-	if (string_contains(db.albums[a.album].name, q)) return true;
-	return false;
-}
-
-function fix2(i) {
-	if (i < 10) return "0" + i;
-	return "" + i;
-}
-
 enyo.kind({
 	name: "Media.Library",
 	classes: "media-library enyo-fit",
@@ -76,23 +36,26 @@ enyo.kind({
 	names: [],
 	constructor: function() {
 		this.db = {files:[], albums: [], artits: []};
-		this.sorted = [];
-		this.filtered = [];
-		this.playSelectedFile = false;
-		this.playSelectedFiltered = false;
 		this.stopped = true;
 		this.changedSearchTimer = false;
 		this.inherited(arguments);
 	},
+	create: function() {
+		this.inherited(arguments);
+		this.playlist_all = new Media.Playlist.Sort({source: new Media.Playlist.All() });
+		this.playlist = new Media.Playlist.Filter({source: this.playlist_all, onCurrentChange: "playlistCurrentChange", onReset: "playlistReset" });
+		this.playlist.setDb(this.db);
+		this.playlist.setOwner(this);
+	},
 	setupItem: function(inSender, inEvent) {
 		// this is the row we're setting up
 		var i = inEvent.index;
-		if (i >= this.filtered.length) return;
+		if (i < 0 || i >= this.playlist.count) return;
 
-		var item = this.db.files[this.filtered[i]];
+		var item = this.playlist.item(i);
 
-		this.$.item.addRemoveClass("media-library-selected", inSender.isSelected(i));
-		this.$.item.addRemoveClass("media-library-playing", this.playSelectedFiltered === i);
+		this.$.item.addRemoveClass("media-library-selected", inEvent.selected);
+		this.$.item.addRemoveClass("media-library-playing", this.playlist.current === i);
 
 		this.$.index.setContent('#' + i);
 		this.$.track.setContent(item.track != 0 ? item.track : '');
@@ -101,6 +64,10 @@ enyo.kind({
 		this.$.title.setContent(item.name);
 		this.$.genre.setContent(item.genre);
 
+		function fix2(i) {
+			if (i < 10) return "0" + i;
+			return "" + i;
+		}
 		var h, m, s = item.length;
 		m = Math.floor(s / 60);
 		h = Math.floor(m / 60);
@@ -117,61 +84,39 @@ enyo.kind({
 		this.$.len.setContent(t);
 	},
 
+	playlistCurrentChange: function(inSender, inEvent) {
+		var player = this.$.player, list = this.$.list;
+		player.setEnablePrevNext(this.playlist.canSeek());
+		if (false === inEvent.current) {
+			if (this.stopped) player.setSource(false);
+		} else {
+			player.setSource(this.playlist.item(inEvent.current).url);
+		}
+		if (false !== inEvent.oldCurrent) list.renderRow(inEvent.oldCurrent);
+		if (false !== inEvent.current) list.renderRow(inEvent.current);
+	},
+
+	playlistReset: function() {
+		this.$.list.setCount(this.playlist.count);
+		this.$.list.reset();
+	},
+
 	listSelect: function(inSender, inEvent) {
 		if (this.stopped) {
-			var player = this.$.player, oldSelected = this.playSelectedFiltered;
-			this.playSelectedFiltered = inEvent.key;
-			this.playSelectedFile = this.filtered[this.playSelectedFiltered];
-			player.setSource(this.db.files[this.playSelectedFile].url);
-			this.$.player.setEnablePrevNext(true);
-			this.$.list.renderRow(oldSelected);
-			this.$.list.renderRow(inEvent.key);
+			this.playlist.setCurrent(inEvent.key);
 		}
 	},
 
 	playTapped: function(inSender, inEvent) {
-		var list = this.$.list, oldSelected = this.playSelectedFiltered;
-
 		var player = this.$.player;
-		this.playSelectedFiltered = inEvent.rowIndex;
-		this.$.player.setEnablePrevNext(true);
-		this.playSelectedFile = this.filtered[this.playSelectedFiltered];
-		player.stop();
-		player.setSource(this.db.files[this.playSelectedFile].url);
-		player.play();
 
-		list.renderRow(oldSelected);
-		list.renderRow(this.playSelectedFiltered);
+		player.stop();
+		this.playlist.setCurrent(inEvent.index);
+		player.play();
 	},
 
 	refreshFilter: function() {
-		var i, l, sorted = this.sorted, files = this.db.files, q = this.$.search.getValue().toUpperCase();
-		this.filtered = [];
-		this.playSelectedFiltered = false;
-		for (i = 0, l = sorted.length; i < l; ++i) {
-			f = sorted[i];
-			files[f].filterNdx = i;
-			if (library_search(this.db, f, q)) {
-				if (this.playSelectedFile !== false && this.playSelectedFile === f) {
-					this.playSelectedFiltered = this.filtered.length;
-				}
-				this.filtered.push(f);
-			}
-		}
-		this.$.player.setEnablePrevNext(false !== this.playSelectedFiltered);
-		this.$.list.setCount(this.filtered.length);
-		this.$.list.reset();
-	},
-
-	refreshSort: function() {
-		var files = this.db.files, i, l = files.length, sorted;
-		this.sorted = sorted = [];
-		for (i = 0; i < l; ++i) sorted.push(i);
-		sorted.sort(library_default_sort.bind(null, this.db));
-		for (i = 0; i < l; ++i) {
-			files[sorted[i]].sortedNdx = i;
-		}
-		this.refreshFilter();
+		this.playlist.setQuery(this.$.search.getValue());
 	},
 
 	changedSearch: function() {
@@ -194,19 +139,12 @@ enyo.kind({
 	},
 
 	seek: function(offset) {
-		var list = this.$.list, oldSelected = this.playSelectedFiltered, l = this.filtered.length, wasStopped = this.stopped;
-		this.playSelectedFile = false;
-		if (false === this.playSelectedFiltered) return;
-		this.playSelectedFiltered = (((this.playSelectedFiltered + offset) % l) + l) % l;
-
+		var wasStopped = this.stopped;
 		var player = this.$.player;
-		this.playSelectedFile = this.filtered[this.playSelectedFiltered];
-		player.setSource(this.db.files[this.playSelectedFile].url);
+
+		if (!this.playlist.seek(offset)) wasStopped = true; /* stop if seek fails */
 		player.stop(); /* replay from beginning */
 		if (!wasStopped) player.play();
-
-		list.renderRow(oldSelected);
-		list.renderRow(this.playSelectedFiltered);
 	},
 
 	ended: function() {
@@ -229,7 +167,7 @@ enyo.kind({
 
 	setDB: function(db) {
 		this.db = db;
-		this.refreshSort();
+		this.playlist.setDb(db);
 	},
 
 	rendered: function() {
