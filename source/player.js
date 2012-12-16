@@ -32,7 +32,7 @@ enyo.kind({
         },
     ],
     flashaudio_chrome: [
-        {name:'audio',kind:'Media.FlashAudio',
+        {name:'flashaudio',kind:'Media.FlashAudio',
             onDurationChange: "handleDurationChange",
             onEnded: "handleEnded",
             onPlay: "handlePlay",
@@ -59,12 +59,15 @@ enyo.kind({
 
     create: function() {
         this.inherited(arguments);
+        this.stopOriginators = [];
+        this.audio = null;
+
+        this.createChrome(this.htmlaudio_chrome);
+
+        this.useFlashMP3 = false;
         var a = document.createElement('audio');
-        if (a.canPlayType('audio/mpeg') && a.canPlayType('audio/ogg')) {
-            this.useHTML5 = true;
-            this.createChrome(this.htmlaudio_chrome);
-        } else {
-            this.useHTML5 = false;
+        if (!a.canPlayType('audio/mpeg')) {
+            this.useFlashMP3 = true;
             this.createChrome(this.flashaudio_chrome);
         }
     },
@@ -72,21 +75,37 @@ enyo.kind({
     rendered: function() {
         this.inherited(arguments);
 
+        this.audio = this.$.audio;
+
+        this.stopOriginators.push(this.audio);;
+        if (this.useFlashMP3) this.stopOriginators.push(this.$.flashaudio);
+
         this.handleDurationChange();
         this.handleVolumeChange();
         this.enablePrevNextChanged();
     },
     sourceChanged: function() {
-        this.$.audio.setSrc(this.source);
+        if (this.source) {
+            var selAudio = this.$.audio;
+            if (this.useFlashMP3 && this.source.match(/\.mp3$/i)) selAudio = this.$.flashaudio;
+
+            if (this.audio !== selAudio) {
+                var oldAudio = this.audio;
+                this.audio = selAudio;
+                oldAudio.stop();
+                oldAudio.setSrc(null);
+            }
+        }
+        this.audio.setSrc(this.source);
     },
     play: function() {
-        this.$.audio.play();
+        this.audio.play();
     },
     pause: function() {
-        this.$.audio.pause();
+        this.audio.pause();
     },
     stop: function() {
-        this.$.audio.stop();
+        this.audio.stop();
     },
     enablePrevNextChanged: function() {
         this.$.prev.addRemoveClass('disabled', !this.enablePrevNext);
@@ -95,20 +114,20 @@ enyo.kind({
 
     playTapped: function() {
         if (this.$.play.hasClass('disabled')) return;
-        if (this.$.audio.paused) {
-            this.$.audio.play();
+        if (this.audio.paused) {
+            this.audio.play();
         } else {
-            this.$.audio.pause();
+            this.audio.pause();
         }
         return true;
     },
     stopTapped: function() {
         if (this.$.stop.hasClass('disabled')) return;
-        this.$.audio.stop();
+        this.audio.stop();
         return true;
     },
     sliderChange: function() {
-        this.$.audio.setCurrentTime(this.$.slider.value);
+        this.audio.setCurrentTime(this.$.slider.value);
         this.setTimerText(this.$.slider.value);
         return true;
     },
@@ -117,14 +136,14 @@ enyo.kind({
         return true;
     },
     muteTapped: function() {
-        this.$.audio.setMuted(!this.$.audio.muted);
+        this.audio.setMuted(!this.audio.muted);
         return true;
     },
     volumeChanging: function() {
         var v = this.$.volume.value;
-        if (this.$.audio.muted && 0 === v) return;
-        this.$.audio.setVolume(v);
-        this.$.audio.setMuted(0 === v);
+        if (this.audio.muted && 0 === v) return;
+        this.audio.setVolume(v);
+        this.audio.setMuted(0 === v);
         return true;
     },
     prevTapped: function() {
@@ -154,7 +173,7 @@ enyo.kind({
     },
     setTimerText: function(currentTime) {
         var t;
-        if (!isNaN(this.$.audio.duration)) {
+        if (!isNaN(this.audio.duration)) {
             t = this.formatTimer(currentTime);
             t = t.slice(0, this.durationMask.length - t.length) + t;
         } else {
@@ -164,11 +183,11 @@ enyo.kind({
         this.$.timer.container.reflow();
     },
     handleDurationChange: function() {
-        var duration = this.$.audio.duration;
+        var duration = this.audio.duration;
         if (isNaN(duration)) {
             this.durationMask = this.durationText = '--:--';
         } else {
-            this.durationText = this.formatTimer(this.$.audio.duration);
+            this.durationText = this.formatTimer(this.audio.duration);
             this.durationMask = this.durationText.replace(/[0-9]/g, '0');
         }
         this.handleTimeUpdate();
@@ -185,7 +204,7 @@ enyo.kind({
     handlePlaying: function() {
     },
     handleTimeUpdate: function() {
-        var s = this.$.slider, a = this.$.audio;
+        var s = this.$.slider, a = this.audio;
         s.setMax(a.duration);
         if (!s.tapped && !s.dragging) {
             s.animateTo(a.currentTime);
@@ -193,19 +212,29 @@ enyo.kind({
         }
     },
     handleVolumeChange: function() {
-        var s = this.$.volume, a = this.$.audio;
+        var s = this.$.volume, a = this.audio;
         if (!s.tapped && !s.dragging) s.animateTo(a.muted ? 0 : a.volume);
         this.$.mute.addRemoveClass('active', a.muted || 0 === a.volume);
     },
     handleWaiting: function() {
     },
     handleProgress: function() {
-        this.$.slider.setProgress(MyTimeRanges.lastEnd(this.$.audio.buffered));
+        this.$.slider.setProgress(MyTimeRanges.lastEnd(this.audio.buffered));
     },
     handleSourceChanged: function() {
         this.$.play.addRemoveClass('disabled', !this.source);
     },
     handleStopped: function() {
         this.$.stop.addClass('disabled');
+    },
+
+    bubble: function(inEventName, inEvent, inSender) {
+        if (inEvent && (inEvent.originator !== this.audio)) {
+            var i, l, stop = this.stopOriginators;
+            for (var i = 0, l = list.length; i < l; ++i) {
+                if (inEvent.originator === list[i]) return true; /* ignore event from disabled audio backend */
+            }
+        }
+        return this.inherited(arguments);
     }
 });

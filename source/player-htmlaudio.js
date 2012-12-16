@@ -114,9 +114,8 @@ enyo.kind({
             if (this.changedSource) {
                 a.load();
                 this.changedSource = false;
-            } else {
-                a.play();
             }
+            a.play();
         }
     },
     pause: function() {
@@ -179,7 +178,7 @@ enyo.kind({
     handlecanplaythrough: function() {
         if (!this._wantPlay) return;
         var a = this.node;
-        a.play();
+        if (a.paused) a.play();
     },
     handledurationchange: function() {
         var a = this.node;
