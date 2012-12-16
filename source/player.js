@@ -178,7 +178,7 @@ enyo.kind({
         var t;
         if (!isNaN(this.audio.duration)) {
             t = this.formatTimer(currentTime);
-            t = t.slice(0, this.durationMask.length - t.length) + t;
+            t = this.durationMask.slice(0, this.durationMask.length - t.length) + t;
         } else {
             t = this.durationMask;
         }
