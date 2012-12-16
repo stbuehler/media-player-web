@@ -156,7 +156,7 @@
 	background-color: #333;
 	border-top: 1px solid silver;
 	font-size: 12px;
-	padding: 4px;
+	padding: 0 4px;
 }
 
 .media-library-item.media-library-selected {
@@ -171,7 +171,7 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	color: silver;
-	padding: 2px 0;
+	padding: 4px 0;
 }
 
 .media-library-item.media-library-playing div {
@@ -223,6 +223,7 @@
 .media-library-item .media-library-pull-right {
 	width: 19em;
 	float: right;
+	padding: 0;
 }
 
 .media-library-item .media-library-genre {
