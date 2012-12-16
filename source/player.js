@@ -61,6 +61,7 @@ enyo.kind({
         this.inherited(arguments);
         this.stopOriginators = [];
         this.audio = null;
+        this.running = false;
 
         this.createChrome(this.htmlaudio_chrome);
 
@@ -76,6 +77,8 @@ enyo.kind({
         this.inherited(arguments);
 
         this.audio = this.$.audio;
+
+        this.$.slider.$.animator.setEasingFunction(enyo.easing.linear);
 
         this.stopOriginators.push(this.audio);;
         if (this.useFlashMP3) this.stopOriginators.push(this.$.flashaudio);
@@ -195,19 +198,29 @@ enyo.kind({
     handleEnded: function() {
     },
     handlePlay: function() {
+        this.running = true;
+        this.handleTimeUpdate();
         this.$.stop.removeClass('disabled');
         this.$.play.addClass('active');
     },
     handlePause: function() {
+        this.running = false;
+        this.handleTimeUpdate();
         this.$.play.removeClass('active');
     },
     handlePlaying: function() {
+        this.running = true;
+        this.handleTimeUpdate();
     },
     handleTimeUpdate: function() {
         var s = this.$.slider, a = this.audio;
         s.setMax(a.duration);
         if (!s.tapped && !s.dragging) {
-            s.animateTo(a.currentTime);
+            this.$.slider.$.animator.stop();
+            s.setValue(a.currentTime);
+            if (this.running) {
+                s.animateTo(a.currentTime + (this.$.slider.$.animator.duration / 1000));
+            }
             this.setTimerText(a.currentTime);
         }
     },
@@ -217,6 +230,8 @@ enyo.kind({
         this.$.mute.addRemoveClass('active', a.muted || 0 === a.volume);
     },
     handleWaiting: function() {
+        this.running = false;
+        this.handleTimeUpdate();
     },
     handleProgress: function() {
         this.$.slider.setProgress(MyTimeRanges.lastEnd(this.audio.buffered));
