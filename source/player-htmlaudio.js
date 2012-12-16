@@ -61,7 +61,7 @@ enyo.kind({
         } else {
             a.muted = this.muted;
         }
-        a.src = this.src;
+        a.src = this.src ? this.src : "data:,";
 
         /* register events: they don't bubble, so need to do this for each node */
         var d = enyo.dispatcher, i, n;
@@ -88,7 +88,7 @@ enyo.kind({
         this.doProgress();
 
         this.eventsActive = false;
-        a.src = this.src;
+        a.src = this.src ? this.src : "data:,";
         this.changedSource = true;
         this.eventsActive = true;
         this.doSourceChanged();
