@@ -13,9 +13,9 @@ enyo.kind({
 				{kind: "Image", src: "lib/onyx/images/search-input-search.png", style: "height: 20px; width: 20px;"}
 			]}
 		]},
-		{name: "list", kind: "List", count: 0, multiSelect: false, fit: true, classes: "media-library-list",
+		{name: "list", kind: "List", count: 0, noSelect: false, fit: true, classes: "media-library-list",
 		 onSelect: "listSelect", onSetupItem: "setupItem", oncontextmenu: "listContextMenu", components: [
-			{name: "item", classes: "media-library-item enyo-border-box", ondblclick: "playTapped", components: [
+			{name: "item", classes: "media-library-item enyo-border-box", onclick: "listClick", ondblclick: "playTapped", components: [
 				{name: "play", classes: "enyo-unselectable media-library-play", ontap: "playTapped"},
 				{name: "index", classes: "media-library-index"},
 				{name: "track", classes: "media-library-track"},
@@ -37,6 +37,7 @@ enyo.kind({
 	constructor: function() {
 		this.db = {files:[], albums: [], artits: []};
 		this.stopped = true;
+		this.pendingDeselect = false;
 		this.changedSearchTimer = false;
 		this.inherited(arguments);
 	},
@@ -94,6 +95,16 @@ enyo.kind({
 		}
 		if (false !== inEvent.oldCurrent) list.renderRow(inEvent.oldCurrent);
 		if (false !== inEvent.current) list.renderRow(inEvent.current);
+
+		if (this.playlist.current !== false) {
+			var selRow = [], selection = list.getSelection().getSelected(), k;
+			for (k in selection) {
+				if (selection.hasOwnProperty(k)) selRow.push(k >> 0);
+			}
+			if (0 === selRow.length) {
+				this.$.list.scrollToRow(this.playlist.current);
+			}
+		}
 	},
 
 	playlistReset: function() {
@@ -107,12 +118,32 @@ enyo.kind({
 		}
 	},
 
+	listClick: function(inSender, inEvent) {
+		var list = this.$.list, index = inEvent.index, self = this;
+		if (list.isSelected(inEvent.index)) {
+			this.pendingDeselect = true;
+			window.setTimeout(function() {
+				if (self.pendingDeselect) {
+					self.pendingDeselect = false;
+					list.deselect(index);
+				}
+			}, 10);
+		} else {
+			list.select(inEvent.index);
+		}
+		return true;
+	},
+
 	playTapped: function(inSender, inEvent) {
+		this.pendingDeselect = false;
 		var player = this.$.player;
 
 		player.stop();
 		this.playlist.setCurrent(inEvent.index);
 		player.play();
+
+		inEvent.preventDefault();
+		return true;
 	},
 
 	refreshFilter: function() {
