@@ -135,7 +135,7 @@ enyo.kind({
 			this.doReset();
 			this.doCurrentChange({oldCurrent: false, current: this.current});
 		} else {
-			this.source.setCurrent(false);
+			this.source.current = false;
 			this.runUpdate();
 		}
 	},
@@ -153,7 +153,7 @@ enyo.kind({
 		if (this.current === false) {
 			var sc = this.source.current, c;
 			if (sc !== false) {
-				c = revIndex[sc];
+				c = this.revIndex[sc];
 				if (undefined !== c) this.setCurrent(c);
 			}
 		}

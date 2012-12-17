@@ -39,6 +39,7 @@ enyo.kind({
 		this.stopped = true;
 		this.pendingDeselect = false;
 		this.changedSearchTimer = false;
+		this.sessionLoaded = false;
 		this.inherited(arguments);
 	},
 	create: function() {
@@ -105,6 +106,8 @@ enyo.kind({
 				this.$.list.scrollToRow(this.playlist.current);
 			}
 		}
+
+		this.storeSession();
 	},
 
 	playlistReset: function() {
@@ -158,6 +161,7 @@ enyo.kind({
 			this.changedSearchTimer = false;
 			this.refreshFilter();
 		}.bind(this), 250);
+		this.storeSession();
 	},
 	searchKeyDown: function(sender, event) {
 		if (event.keyIdentifier === "Enter") {
@@ -242,7 +246,41 @@ enyo.kind({
 			this.$.itemMenu.show();
 			return true;
 		}
-	}
+	},
+
+	loadSession: function() {
+		var session = sessionStorage.getItem("media-player");
+		if (session) {
+			session = JSON.parse(session);
+			if (session.query) {
+				this.$.search.setValue(session.query);
+				this.refreshFilter();
+			}
+			if (session.url) {
+				var i, l, s = this.playlist;
+				while (s.source) s = s.source;
+				for (i = 0, l = s.count; i < l; ++i) {
+					if (s.item(i).url == session.url) {
+						s.setCurrent(i);
+						break;
+					}
+				}
+			}
+		}
+		this.sessionLoaded = true;
+	},
+
+	storeSession: function() {
+		try {
+			if (!this.sessionLoaded) return;
+			var session = {};
+			session.url = this.$.player.source;
+			session.query = this.$.search.getValue();
+			sessionStorage.setItem("media-player", JSON.stringify(session));
+		} catch (e) {
+			console.log("Couldn't store session: ", e);
+		}
+	},
 });
 
 enyo.kind({
@@ -263,5 +301,6 @@ enyo.kind({
 
 	loadDB: function(req, db) {
 		this.$.library.setDB(db);
+		this.$.library.loadSession();
 	},
 });
