@@ -155,8 +155,8 @@
 .media-library-item {
 	background-color: #333;
 	border-top: 1px solid silver;
-	font-size: 12px;
-	padding: 0 4px;
+	font-size: 14px;
+	padding: 0 6px;
 }
 
 .media-library-item.media-library-selected {
