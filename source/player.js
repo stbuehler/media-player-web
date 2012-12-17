@@ -67,7 +67,7 @@ enyo.kind({
 
         this.useFlashMP3 = false;
         var a = document.createElement('audio');
-        if (!a.canPlayType('audio/mpeg')) {
+        if (!enyo.platform.webos && !a.canPlayType('audio/mpeg')) {
             this.useFlashMP3 = true;
             this.createChrome(this.flashaudio_chrome);
         }
