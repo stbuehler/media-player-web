@@ -11,6 +11,7 @@ enyo.kind({
 
 	events: {
 		onCurrentChange: "",
+		onCurrentItemChange: "", /* event.item, should be only sent by not nested sources in currentChanged() */
 		onReset: "", /* reset is always followed by currentChange */
 	},
 
@@ -33,11 +34,15 @@ enyo.kind({
 		if (this.current !== value) {
 			var oldValue = this.current;
 			this.current = value;
-			if (this.currentChanged) this.currentChanged(oldValue);
+			this.currentChanged(oldValue);
 			if (this.current !== oldValue) {
 				this.doCurrentChange({oldCurrent: oldValue, current: this.current});
 			}
 		}
+	},
+
+	currentChanged: function() {
+		this.doCurrentItemChange({item: this.currentItem()});
 	},
 
 	seek: function(offset) {
@@ -51,6 +56,11 @@ enyo.kind({
 	/* overwrite */
 	item: function(ndx) {
 		return undefined;
+	},
+
+	/* currentItem can be valid even if current === false - this means in a nested source a item is selected */
+	currentItem: function() {
+		return this.current === false ? undefined : this.item(this.current);
 	},
 
 	setDb: function(db) {
@@ -97,6 +107,7 @@ enyo.kind({
 		this.current = false;
 		this.doReset();
 		this.doCurrentChange();
+		this.doCurrentChange({item: this.currentItem()});
 	},
 
 	item: function(ndx) {
@@ -111,12 +122,14 @@ enyo.kind({
 
 	handlers: {
 		onCurrentChange: "handleCurrentChange",
+		onCurrentItemChange: "handleCurrentItemChange",
 		onReset: "handleReset",
 	},
 
 	create: function() {
 		this.index = [];
 		this.revIndex = [];
+		this._curitem = undefined;
 		this.inherited(arguments);
 	},
 
@@ -125,17 +138,24 @@ enyo.kind({
 		return this.source.item(this.index[ndx]);
 	},
 
+	currentItem: function(ndx) {
+		return this._curitem;
+	},
+
 	sourceChanged: function() {
 		if (!this.source) {
 			this.index = [];
 			this.revIndex = [];
 			this.count = 0;
+			this._curitem = undefined;
 			var oldcurrent = this.current;
 			this.current = false;
 			this.doReset();
 			this.doCurrentChange({oldCurrent: false, current: this.current});
+			this.doCurrentItemChange({item: this._curitem});
 		} else {
 			this.source.current = false;
+			this._curitem = undefined;
 			this.runUpdate();
 		}
 	},
@@ -143,9 +163,20 @@ enyo.kind({
 	currentChanged: function() {
 		if (this.source) {
 			if (this.current !== false) this.source.setCurrent(this.index[this.current]);
+			/* doCurrentItemChange called in source */
 		} else {
 			this.current = false;
 		}
+	},
+
+	handleCurrentItemChange: function(inSender, inEvent) {
+		if (inSender === this) return false; /* don't handle our own events */
+		var ci = this.source ? this.source.currentItem() : undefined;
+		if (ci !== this._curitem) {
+			this._curitem = ci;
+			this.doCurrentItemChange({item: ci});
+		}
+		return true;
 	},
 
 	handleCurrentChange: function(inSender, inEvent) {
@@ -191,6 +222,7 @@ enyo.kind({
 		this.doReset();
 		this.current = newCurrent;
 		this.doCurrentChange({oldCurrent: false, current: newCurrent});
+		this.doCurrentItemChange({item: this._curitem});
 	},
 
 	/* overwrite */

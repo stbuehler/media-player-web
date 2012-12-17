@@ -45,7 +45,7 @@ enyo.kind({
 	create: function() {
 		this.inherited(arguments);
 		this.playlist_all = new Media.Playlist.Sort({source: new Media.Playlist.All() });
-		this.playlist = new Media.Playlist.Filter({source: this.playlist_all, onCurrentChange: "playlistCurrentChange", onReset: "playlistReset" });
+		this.playlist = new Media.Playlist.Filter({source: this.playlist_all, onCurrentChange: "playlistCurrentChange", onReset: "playlistReset", onCurrentItemChange: "playlistCurrentItemChange" });
 		this.playlist.setDb(this.db);
 		this.playlist.setOwner(this);
 	},
@@ -86,14 +86,15 @@ enyo.kind({
 		this.$.len.setContent(t);
 	},
 
+	playlistCurrentItemChange: function(inSender, inEvent) {
+		this.$.player.setSource(inEvent.item ? inEvent.item.url : false);
+		this.storeSession();
+	},
+
 	playlistCurrentChange: function(inSender, inEvent) {
 		var player = this.$.player, list = this.$.list;
 		player.setEnablePrevNext(this.playlist.canSeek());
-		if (false === inEvent.current) {
-			if (this.stopped) player.setSource(false);
-		} else {
-			player.setSource(this.playlist.item(inEvent.current).url);
-		}
+
 		if (false !== inEvent.oldCurrent) list.renderRow(inEvent.oldCurrent);
 		if (false !== inEvent.current) list.renderRow(inEvent.current);
 
@@ -106,8 +107,6 @@ enyo.kind({
 				this.$.list.scrollToRow(this.playlist.current);
 			}
 		}
-
-		this.storeSession();
 	},
 
 	playlistReset: function() {
@@ -260,14 +259,25 @@ enyo.kind({
 				var i, l, s = this.playlist;
 				while (s.source) s = s.source;
 				for (i = 0, l = s.count; i < l; ++i) {
-					if (s.item(i).url == session.url) {
+					if (s.item(i).url === session.url) {
 						s.setCurrent(i);
 						break;
 					}
 				}
+				try {
+					if (session.currentTime) {
+						this.$.player.audio.setCurrentTime(session.currentTime);
+						if (session.playing) this.$.player.play();
+					}
+				} catch (e) {
+					console.log("load session warning: ", e);
+				}
 			}
 		}
 		this.sessionLoaded = true;
+		enyo.dispatcher.listen(window, "beforeunload", function() {
+			this.storeSession();
+		}.bind(this));
 	},
 
 	storeSession: function() {
@@ -276,6 +286,10 @@ enyo.kind({
 			var session = {};
 			session.url = this.$.player.source;
 			session.query = this.$.search.getValue();
+			if (session.url) {
+				session.playing = this.$.player.running;
+				session.currentTime = this.$.player.audio.currentTime;
+			}
 			sessionStorage.setItem("media-player", JSON.stringify(session));
 		} catch (e) {
 			console.log("Couldn't store session: ", e);

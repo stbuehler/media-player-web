@@ -33,6 +33,7 @@ enyo.kind({
     _reset: function() {
         this.duration = NaN;
         this.currentTime = 0;
+        this.seekTime = false;
         this.paused = true;
         this.stopped = true;
         this.waiting = false;
@@ -104,7 +105,15 @@ enyo.kind({
     },
     currentTimeChanged: function() {
         var a = this.node;
-        a.currentTime = this.currentTime;
+        if (this.changedSource) {
+            a.load();
+            this.changedSource = false;
+        }
+        try {
+            a.currentTime = this.currentTime;
+        } catch (e) {
+            this.seekTime = this.currentTime;
+        }
     },
 
     play: function() {
@@ -131,6 +140,7 @@ enyo.kind({
             this._wantPlay = false;
             a.pause();
         }
+        this.seekTime = false;
         try {
             a.currentTime = 0;
         } catch (e) {}
@@ -175,6 +185,12 @@ enyo.kind({
         }
     },
 
+    handleloadedmetadata: function() {
+        if (this.seekTime !== false) {
+            this.node.currentTime = this.seekTime;
+            this.seekTime = false;
+        }
+    },
     handlecanplaythrough: function() {
         if (!this._wantPlay) return;
         var a = this.node;
