@@ -31,13 +31,14 @@ class MiniMP3 {
 		this._sound.stop();
 		this._sound = new Sound();
 		this._sound.onSoundComplete = delegate(this, function():Void {
-			this.jsEvent("ended");
 			this._playing = false;
 			this._nextPosition = 0;
+			this.jsEvent("ended");
 		});
 		this._sound.setVolume(this._volume);
 		if (this._source !== '' && this._source !== null) {
 			this._sound.loadSound(this._source, true);
+			this._sound.stop();
 		}
 		this._playing = false;
 		this._nextPosition = 0;

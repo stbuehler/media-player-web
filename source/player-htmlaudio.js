@@ -81,7 +81,7 @@ enyo.kind({
         }
 
         this._reset();
-        this.doPlaying();
+        this.doWaiting();
         this.doPause();
         this.doStopped();
         this.doDurationChange();

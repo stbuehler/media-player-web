@@ -61,19 +61,20 @@ enyo.kind({
     _reset: function() {
         this.duration = NaN;
         this.currentTime = 0;
+        this._seekTime = false;
         this.paused = true;
         this.stopped = true;
         this.waiting = false;
         this.buffered = new MyTimeRanges();
         this.loaded = 0;
-
-        this._wantPlay = false;
     },
 
     create: function() {
         this._reset();
         this.eventsActive = true;
         this._flEvents = {};
+        this.registered = false;
+        this._pollTimer = undefined;
         this.inherited(arguments);
     },
 
@@ -98,7 +99,7 @@ enyo.kind({
             cb = cb ? cb : enyo.nop;
             this._flEvents[evt] = cb;
         }
-        // console.log("handleFlashEvent", evt, this.flash.getAll());
+        console.log("handleFlashEvent", evt, this.flash.getAll());
         cb.apply(this, args);
     },
 
@@ -106,7 +107,7 @@ enyo.kind({
         var a = this.flash;
 
         this._reset();
-        this.doPlaying();
+        this.doWaiting();
         this.doPause();
         this.doStopped();
         this.doDurationChange();
@@ -114,91 +115,128 @@ enyo.kind({
         this.doProgress();
 
         this.eventsActive = false;
-        a.setSrc(this.src);
+        if (this.registered) {
+            a.setSrc(this.src);
+        }
         this.eventsActive = true;
         this.doSourceChanged();
         this.updateState();
     },
     mutedChanged: function() {
-        this.flash.setVolume(this.muted ? 0 : this.volume);
+        if (this.registered) {
+            this.flash.setVolume(this.muted ? 0 : this.volume);
+        }
         if (this.eventsActive) this.doVolumeChange();
     },
     volumeChanged: function() {
-        this.flash.setVolume(this.muted ? 0 : this.volume);
+        if (this.registered) {
+            this.flash.setVolume(this.muted ? 0 : this.volume);
+        }
         if (this.eventsActive) this.doVolumeChange();
     },
     currentTimeChanged: function() {
-        var a = this.flash;
-        a.setCurrentTime(this.currentTime);
+        if (this.registered) {
+            var a = this.flash;
+            a.setCurrentTime(this.currentTime);
+        } else {
+            this._seekTime = this.currentTime;
+            this.doTimeUpdate();
+        }
     },
 
     play: function() {
-        this.flash.play();
+        if (this.registered) {
+            this.flash.play();
+        } else {
+            if (this.paused) {
+                this.paused = this.stopped = false;
+                this.doPlay();
+            }
+        }
     },
     pause: function() {
-        this.flash.pause();
+        if (this.registered) {
+            this.flash.pause();
+        } else {
+            if (!this.paused) {
+                this.paused = true;
+                this.stopped = (this.currentTime === 0);
+                this.doPause();
+                if (this.stopped) this.doStopped();
+            }
+        }
     },
     stop: function() {
-        this.flash.stop();
+        if (this.registered) {
+            this.flash.stop();
+        } else {
+            if (!this.stopped) {
+                this.stopped = true;
+                this.currentTime = 0;
+                if (!this.paused) {
+                    this.paused = true;
+                    this.doPause();
+                }
+                this.doStopped();
+                this.doTimeUpdate();
+            }
+        }
     },
 
     startPoll: function() {
-        window.setTimeout(this.pollState.bind(this), 500);
+        if (undefined === this._pollTimer && this.registered) {
+            if (!this.paused || (this.src && (isNaN(this.duration) || 0 === this.duration))) {
+                this._pollTimer = window.setTimeout(this.pollState.bind(this), 500);
+            }
+        }
     },
 
     pollState: function() {
-        var a = this.flash.getAll();
-        if (this.duration !== a.duration) {
-            this.duration = a.duration;
-            if (this.eventsActive) this.doDurationChange();
-        }
-        if (this.currentTime !== a.currentTime) {
-            this.currentTime = a.currentTime;
-            if (this.eventsActive) this.doTimeUpdate();
-        }
-        if (this.loaded !== a.loaded) {
-            this.buffered = new MyTimeRanges(a.loaded > 0 ? [0, a.loaded] : []);
-            if (this.eventsActive) this.doProgress();
-        }
-        if (!this.paused) {
-            window.setTimeout(this.pollState.bind(this), 500);
-        }
+        this._pollTimer = undefined;
+        this.updateState();
     },
 
     updateState: function() {
-        var a = this.flash.getAll();
-        if (this.duration !== a.duration) {
-            this.duration = a.duration;
-            if (this.eventsActive) this.doDurationChange();
-        }
-        if (this.currentTime !== a.currentTime) {
-            this.currentTime = a.currentTime;
-            if (this.eventsActive) this.doTimeUpdate();
-        }
-        if (this.paused !== a.paused) {
-            this.paused = a.paused;
-            if (this.paused) {
-                if (this.eventsActive) this.doPause();
-            } else {
-                if (this.eventsActive) this.doPlay();
+        if (this.registered) {
+            var a = this.flash.getAll();
+            if (this.currentTime !== a.currentTime) {
+                this.currentTime = a.currentTime;
+                if (this.eventsActive) this.doTimeUpdate();
             }
-        }
-        var stopped = this.paused && (0 === this.currentTime);
-        if (this.stopped !== stopped) {
-            this.stopped = stopped;
-            if (this.eventsActive && stopped) this.doStopped();
-        }
-        if (this.loaded !== a.loaded) {
-            this.buffered = new MyTimeRanges(a.loaded > 0 ? [0, a.loaded] : []);
-            if (this.eventsActive) this.doProgress();
-        }
-        if (!this.muted && this.volume !== a.volume) {
-            if (this.volume === 0) {
-                this.muted = true;
-            } else {
-                this.volume = a.volume;
+            if (this.duration !== a.duration) {
+                this.duration = a.duration;
+                if (this.eventsActive) this.doDurationChange();
+                if (this._seekTime !== false && this._seekTime < this.duration) {
+                    var s = this._seekTime; this._seekTime = false;
+                    this.setCurrentTime(s);
+                }
             }
-            if (this.eventsActive) this.doVolumeChange();
+            if (this.loaded !== a.loaded) {
+                this.buffered = new MyTimeRanges(a.loaded > 0 ? [0, a.loaded] : []);
+                if (this.eventsActive) this.doProgress();
+            }
+            if (this.paused !== a.paused) {
+                this.paused = a.paused;
+                if (this.paused) {
+                    if (this.eventsActive) this.doPause();
+                } else {
+                    if (this.eventsActive) this.doPlay();
+                }
+            }
+            var stopped = this.paused && (0 === this.currentTime);
+            if (this.stopped !== stopped) {
+                this.stopped = stopped;
+                if (this.eventsActive && stopped) this.doStopped();
+            }
+            if (!this.muted && this.volume !== a.volume) {
+                if (this.volume === 0) {
+                    this.muted = true;
+                } else {
+                    this.volume = a.volume;
+                }
+                if (this.eventsActive) this.doVolumeChange();
+            }
+            this.startPoll();
         }
     },
 
@@ -216,7 +254,16 @@ enyo.kind({
             a.setMuted(this.muted);
         }
         if (this.eventsActive) this.doVolumeChange();
-        if (this.src) a.setSrc(this.src);
+        if (this.src) {
+            a.setSrc(this.src);
+            if (!this.paused) {
+                a.play();
+            }
+            console.log("a.setCurrentTime(this.currentTime);", this.currentTime);
+            a.setCurrentTime(this.currentTime);
+        }
+        this.registered = true;
+        this.updateState();
     },
 
     handledurationchange: function() {
