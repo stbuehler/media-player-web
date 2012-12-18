@@ -164,6 +164,8 @@ enyo.kind({
     },
     */
     formatTimer: function(seconds) {
+        seconds = Number(seconds);
+        if (isNaN(seconds)) return '--:--';
         seconds = Math.floor(seconds);
         var m = Math.floor(seconds / 60), h = Math.floor(m / 60);
         m = m % 60; seconds = seconds % 60;
@@ -178,7 +180,7 @@ enyo.kind({
         var t;
         if (!isNaN(this.audio.duration)) {
             t = this.formatTimer(currentTime);
-            t = this.durationMask.slice(0, this.durationMask.length - t.length) + t;
+            t = this.durationMask.slice(0, Math.max(0, this.durationMask.length - t.length)) + t;
         } else {
             t = this.durationMask;
         }
@@ -187,12 +189,8 @@ enyo.kind({
     },
     handleDurationChange: function() {
         var duration = this.audio.duration;
-        if (isNaN(duration)) {
-            this.durationMask = this.durationText = '--:--';
-        } else {
-            this.durationText = this.formatTimer(this.audio.duration);
-            this.durationMask = this.durationText.replace(/[0-9]/g, '0');
-        }
+        this.durationText = this.formatTimer(this.audio.duration);
+        this.durationMask = this.durationText.replace(/[0-9]/g, '0');
         this.handleTimeUpdate();
     },
     handleEnded: function() {
