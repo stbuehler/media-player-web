@@ -157,6 +157,7 @@
 	border-top: 1px solid silver;
 	font-size: 14px;
 	padding: 0 6px;
+	clear: both;
 }
 
 .media-library-item.media-library-selected {
