@@ -53,19 +53,6 @@ enyo.kind({
 		return true;
 	},
 
-	decorateItem: function(item) {
-		if (!this.db) return item;
-		return {
-			name: item.name,
-			url: item.url,
-			artist: this.db.artists[item.artist].name,
-			album: this.db.albums[item.album].name,
-			track: item.track,
-			genre: item.genre,
-			length: item.length
-		};
-	},
-
 	/* overwrite */
 	item: function(ndx) {
 		return undefined;
@@ -116,7 +103,14 @@ enyo.kind({
 	kind: "Media.Playlist.Abstract",
 
 	dbChanged: function() {
-		this.count = this.db.files.length;
+		var i, l, f;
+		var files = this.db.files, albums = this.db.albums, artists = this.db.artists;
+		l = this.count = files.length;
+		for (i = 0; i < l; ++i) {
+			f = files[i];
+			if (!f.album) f.album = albums[f.album_id].name;
+			if (!f.artist) f.artist = artists[f.artist_id].name;
+		}
 		this.current = false;
 		this.doReset();
 		this.doCurrentChange();
@@ -270,8 +264,8 @@ enyo.kind({
 			function library_default_sort(db, getter, i, j) {
 				var a = getter(i), b = getter(j);
 				var r;
-				if (0 != (r = mystr_sort(db.artists[a.artist].name, db.artists[b.artist].name))) return r;
-				if (0 != (r = mystr_sort(db.albums[a.album].name, db.albums[b.album].name))) return r;
+				if (0 != (r = mystr_sort(a.artist, b.artist))) return r;
+				if (0 != (r = mystr_sort(a.album, b.album))) return r;
 				if (a.track != b.track) return a.track - b.track;
 				if (0 != (r = mystr_sort(a.name, b.name))) return r;
 				if (0 != (r = mystr_sort(a.url, b.url))) return r;
@@ -314,8 +308,8 @@ enyo.kind({
 				if (!q) return true;
 				var a = getter(i);
 				if (string_contains(a.name, q)) return true;
-				if (string_contains(db.artists[a.artist].name, q)) return true;
-				if (string_contains(db.albums[a.album].name, q)) return true;
+				if (string_contains(a.artist, q)) return true;
+				if (string_contains(a.album, q)) return true;
 				return false;
 			}
 			return library_search;

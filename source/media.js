@@ -62,8 +62,8 @@ enyo.kind({
 
 		this.$.index.setContent('#' + (i+1));
 		this.$.track.setContent(item.track != 0 ? item.track : '');
-		this.$.artist.setContent(this.db.artists[item.artist].name);
-		this.$.album.setContent(this.db.albums[item.album].name);
+		this.$.artist.setContent(item.artist);
+		this.$.album.setContent(item.album);
 		this.$.title.setContent(item.name);
 		this.$.genre.setContent(item.genre);
 
@@ -90,8 +90,7 @@ enyo.kind({
 	playlistCurrentItemChange: function(inSender, inEvent) {
 		var item = inEvent.item;
 		if (item) {
-			item = this.playlist.decorateItem(item);
-			this.$.player.setSource(item ? item.url : false);
+			this.$.player.setSource(item.url);
 			document.title = item.artist + " - " + item.name;
 		} else {
 			this.$.player.setSource(false);
