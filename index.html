@@ -21,7 +21,11 @@
 				alert('No application build found, redirecting to debug.html.');
 				location = 'debug.html';
 			}*/
-			new MediaApp('assets/music.json').renderInto(document.body);
+			if (!document.createElement('audio').canPlayType) {
+				new enyo.Control({content: "Your browser doesn't support <audio>."}).renderInto(document.body);
+			} else {
+				new MediaApp('assets/music.json').renderInto(document.body);
+			}
 		</script>
 	</body>
 </html>
