@@ -53,6 +53,19 @@ enyo.kind({
 		return true;
 	},
 
+	decorateItem: function(item) {
+		if (!this.db) return item;
+		return {
+			name: item.name,
+			url: item.url,
+			artist: this.db.artists[item.artist].name,
+			album: this.db.albums[item.album].name,
+			track: item.track,
+			genre: item.genre,
+			length: item.length
+		};
+	},
+
 	/* overwrite */
 	item: function(ndx) {
 		return undefined;

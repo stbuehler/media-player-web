@@ -13,9 +13,9 @@ enyo.kind({
 				{kind: "Image", src: "lib/onyx/images/search-input-search.png", style: "height: 20px; width: 20px;"}
 			]}
 		]},
-		{name: "list", kind: "List", count: 0, noSelect: false, fit: true, classes: "media-library-list",
+		{name: "list", kind: "List", count: 0, noSelect: true, fit: true, classes: "media-library-list",
 		 onSelect: "listSelect", onSetupItem: "setupItem", oncontextmenu: "listContextMenu", components: [
-			{name: "item", classes: "media-library-item enyo-border-box", onclick: "listClick", ondblclick: "playTapped", components: [
+			{name: "item", classes: "media-library-item enyo-border-box", onclick: "listClick", ondblclick: "listDblClick", components: [
 				{name: "play", classes: "enyo-unselectable media-library-play", ontap: "playTapped"},
 				{name: "index", classes: "media-library-index"},
 				{name: "track", classes: "media-library-track"},
@@ -40,6 +40,7 @@ enyo.kind({
 		this.pendingDeselect = false;
 		this.changedSearchTimer = false;
 		this.sessionLoaded = false;
+		this.listLastClickIndex = 0;
 		this.inherited(arguments);
 	},
 	create: function() {
@@ -59,7 +60,7 @@ enyo.kind({
 		this.$.item.addRemoveClass("media-library-selected", inEvent.selected);
 		this.$.item.addRemoveClass("media-library-playing", this.playlist.current === i);
 
-		this.$.index.setContent('#' + i);
+		this.$.index.setContent('#' + (i+1));
 		this.$.track.setContent(item.track != 0 ? item.track : '');
 		this.$.artist.setContent(this.db.artists[item.artist].name);
 		this.$.album.setContent(this.db.albums[item.album].name);
@@ -87,7 +88,15 @@ enyo.kind({
 	},
 
 	playlistCurrentItemChange: function(inSender, inEvent) {
-		this.$.player.setSource(inEvent.item ? inEvent.item.url : false);
+		var item = inEvent.item;
+		if (item) {
+			item = this.playlist.decorateItem(item);
+			this.$.player.setSource(item ? item.url : false);
+			document.title = item.artist + " - " + item.name;
+		} else {
+			this.$.player.setSource(false);
+			document.title = "Media Player";
+		}
 		this.storeSession();
 	},
 
@@ -121,18 +130,26 @@ enyo.kind({
 	},
 
 	listClick: function(inSender, inEvent) {
-		var list = this.$.list, index = inEvent.index, self = this;
-		if (list.isSelected(inEvent.index)) {
-			this.pendingDeselect = true;
-			window.setTimeout(function() {
-				if (self.pendingDeselect) {
-					self.pendingDeselect = false;
-					list.deselect(index);
-				}
-			}, 10);
+		var list = this.$.list, index = inEvent.index;
+		this.listLastClickIndex = index;
+		if (list.isSelected(index)) {
+			list.deselect(index);
 		} else {
-			list.select(inEvent.index);
+			list.select(index);
 		}
+		return true;
+	},
+
+	listDblClick: function(inSender, inEvent) {
+		var list = this.$.list, index = this.listLastClickIndex; // dblclick has index == -1, probably due to (de)select calls
+		var player = this.$.player;
+
+		list.select(index);
+
+		player.stop();
+		this.playlist.setCurrent(index);
+		player.play();
+
 		return true;
 	},
 
