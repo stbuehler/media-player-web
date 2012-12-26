@@ -3,6 +3,7 @@ enyo.depends(
 	"$lib/onyx",
 	"media.css",
 	"swfobject.js",
+	"prg.js",
 	"player-timeranges.js",
 	"player-htmlaudio.js",
 	"player-flashaudio.js",

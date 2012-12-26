@@ -6,7 +6,7 @@ enyo.kind({
 	classes: "media-library enyo-fit",
 	layoutKind: "FittableRowsLayout",
 	components: [
-		{name: "player", kind: "Media.Player", onEnded: "ended", onNext: "next", onPrev: "prev", onPlay: "playerPlay", onStopped: "playerStopped" },
+		{name: "player", kind: "Media.Player", onEnded: "ended", onNext: "next", onPrev: "prev", onPlay: "playerPlay", onStopped: "playerStopped", onShuffleChange: "shuffleChange" },
 		{kind: "onyx.Toolbar", layoutKind: "FittableColumnsLayout", components: [
 			{kind: "onyx.InputDecorator", fit: true, noStretch: true, layoutKind: "FittableColumnsLayout", components: [
 				{name: "search", kind: "onyx.Input", placeholder: "Search...", fit: true, oninput: "changedSearch", onkeydown: "searchKeyDown"},
@@ -46,7 +46,8 @@ enyo.kind({
 	create: function() {
 		this.inherited(arguments);
 		this.playlist_all = new Media.Playlist.Sort({source: new Media.Playlist.All() });
-		this.playlist = new Media.Playlist.Filter({source: this.playlist_all, onCurrentChange: "playlistCurrentChange", onReset: "playlistReset", onCurrentItemChange: "playlistCurrentItemChange" });
+		this.playlist_filter = new Media.Playlist.Filter({source: this.playlist_all});
+		this.playlist = new Media.Playlist.PartyShuffle({source: this.playlist_filter, onCurrentChange: "playlistCurrentChange", onReset: "playlistReset", onCurrentItemChange: "playlistCurrentItemChange" })
 		this.playlist.setDb(this.db);
 		this.playlist.setOwner(this);
 	},
@@ -165,7 +166,7 @@ enyo.kind({
 	},
 
 	refreshFilter: function() {
-		this.playlist.setQuery(this.$.search.getValue());
+		this.playlist_filter.setQuery(this.$.search.getValue());
 	},
 
 	changedSearch: function() {
@@ -206,6 +207,10 @@ enyo.kind({
 	},
 	prev: function() {
 		this.seek(-1);
+	},
+
+	shuffleChange: function(sender, event) {
+		this.playlist.setShuffle(event.shuffle);
 	},
 
 	playerPlay: function() {
@@ -289,6 +294,8 @@ enyo.kind({
 					console.log("load session warning: ", e);
 				}
 			}
+			this.$.player.setShuffle(session.shuffle);
+			if (session.history) this.playlist.history = session.history;
 		}
 		this.sessionLoaded = true;
 		enyo.dispatcher.listen(window, "beforeunload", function() {
@@ -306,6 +313,8 @@ enyo.kind({
 				session.playing = this.$.player.running;
 				session.currentTime = this.$.player.audio.currentTime;
 			}
+			session.history = this.playlist.history;
+			session.shuffle = this.playlist.shuffle;
 			sessionStorage.setItem("media-player", JSON.stringify(session));
 		} catch (e) {
 			console.log("Couldn't store session: ", e);

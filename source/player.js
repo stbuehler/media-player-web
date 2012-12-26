@@ -11,6 +11,9 @@ enyo.kind({
             {name: "next", classes: "media-player-next enyo-unselectable disabled", ontap: "nextTapped"},
             {name: "slider", kind: "onyx.Slider", classes: "media-player-slider", fit: true, lockBar: false, onChange: "sliderChange", onChanging: "sliderChanging" },
             {name: "timer", classes: "media-player-slider", content: '' },
+            {classes: "media-player-container1 enyo-unselectable", components:[
+                {name: "shuffle", classes: "media-player-shuffle", ontap: "shuffleTapped" }
+            ]},
             {name: "mute", classes: "media-player-mute enyo-unselectable", ontap: "muteTapped"},
             {name: "volume", kind: "onyx.Slider", classes: "media-player-volume", style: "width: 100px;", max: 1, onChange: "volumeChanging", onChanging: "volumeChanging" }
         ]}
@@ -54,7 +57,8 @@ enyo.kind({
 
     events: {
         onPrev: "",
-        onNext: ""
+        onNext: "",
+        onShuffleChange: "",
     },
 
     create: function() {
@@ -115,6 +119,11 @@ enyo.kind({
         this.$.next.addRemoveClass('disabled', !this.enablePrevNext);
     },
 
+    setShuffle: function(shuffle) {
+        this.$.shuffle.addRemoveClass('active', shuffle);
+        this.doShuffleChange({shuffle: shuffle});
+    },
+
     playTapped: function() {
         if (this.$.play.hasClass('disabled')) return;
         if (this.audio.paused) {
@@ -136,6 +145,10 @@ enyo.kind({
     },
     sliderChanging: function() {
         this.setTimerText(this.$.slider.value);
+        return true;
+    },
+    shuffleTapped: function() {
+        this.setShuffle(!this.$.shuffle.hasClass('active'));
         return true;
     },
     muteTapped: function() {
@@ -243,7 +256,7 @@ enyo.kind({
 
     bubble: function(inEventName, inEvent, inSender) {
         if (inEvent && (inEvent.originator !== this.audio)) {
-            var i, l, stop = this.stopOriginators;
+            var i, l, list = this.stopOriginators;
             for (var i = 0, l = list.length; i < l; ++i) {
                 if (inEvent.originator === list[i]) return true; /* ignore event from disabled audio backend */
             }

@@ -116,6 +116,29 @@
 	background-position: -760px 0;
 }
 
+.media-player .media-player-container1 {
+	padding: 0;
+	width: 48px;
+	height: 48px;
+	margin: 2px 0px;
+}
+
+.media-player .media-player-shuffle {
+	padding: 0;
+	margin: 0;
+	margin-top: 24px;
+	background-repeat: no-repeat;
+	background-image: url(../assets/icons-sprite.png);
+	width: 48px;
+	height: 24px;
+}
+
+.media-player .media-player-shuffle {
+	background-position: -904px 0;
+}
+.media-player .media-player-shuffle.active {
+	background-position: -904px -24px;
+}
 
 .media-player .media-player-mute {
 	width: 36px;
@@ -194,7 +217,6 @@
 .media-library-item .media-library-play:hover {
 	background-position: -432px 0;
 }
-
 
 .media-library-item .media-library-index {
 	color: lightgrey;
