@@ -15,7 +15,7 @@ enyo.kind({
 		]},
 		{name: "list", kind: "List", count: 0, noSelect: true, fit: true, classes: "media-library-list",
 		 onSelect: "listSelect", onSetupItem: "setupItem", oncontextmenu: "listContextMenu", components: [
-			{name: "item", classes: "media-library-item enyo-border-box", onclick: "listClick", ondblclick: "listDblClick", components: [
+			{name: "item", classes: "media-library-item enyo-border-box", onclick: "listClick", components: [
 				{name: "play", classes: "enyo-unselectable media-library-play", ontap: "playTapped"},
 				{name: "index", classes: "media-library-index"},
 				{name: "track", classes: "media-library-track"},
@@ -40,7 +40,6 @@ enyo.kind({
 		this.pendingDeselect = false;
 		this.changedSearchTimer = false;
 		this.sessionLoaded = false;
-		this.listLastClickIndex = 0;
 		this.inherited(arguments);
 	},
 	create: function() {
@@ -131,25 +130,20 @@ enyo.kind({
 
 	listClick: function(inSender, inEvent) {
 		var list = this.$.list, index = inEvent.index;
-		this.listLastClickIndex = index;
-		if (list.isSelected(index)) {
+		var player = this.$.player;
+
+		if (2 == inEvent.detail) {
+			/* double click */
+			list.select(index);
+
+			player.stop();
+			this.playlist.setCurrent(index);
+			player.play();
+		} else if (list.isSelected(index)) {
 			list.deselect(index);
 		} else {
 			list.select(index);
 		}
-		return true;
-	},
-
-	listDblClick: function(inSender, inEvent) {
-		var list = this.$.list, index = this.listLastClickIndex; // dblclick has index == -1, probably due to (de)select calls
-		var player = this.$.player;
-
-		list.select(index);
-
-		player.stop();
-		this.playlist.setCurrent(index);
-		player.play();
-
 		return true;
 	},
 
