@@ -263,7 +263,13 @@ enyo.kind({
 	},
 
 	loadSession: function() {
-		var session = sessionStorage.getItem("media-player");
+		var session = false;
+		try {
+			session = sessionStorage.getItem("media-player");
+		} catch (e) {
+			console.log("Couldn't load session: ", e);
+			return;
+		}
 		if (session) {
 			session = JSON.parse(session);
 			if (session.query) {

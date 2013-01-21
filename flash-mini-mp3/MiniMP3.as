@@ -7,6 +7,7 @@ class MiniMP3 {
 	private var _sound:Sound;
 	private var _source:String = "";
 	private var _playing:Boolean = false;
+	private var _loaded:Boolean = false;
 	private var _nextPosition:Number = 0;
 	private var _volume:Number = 100;
 
@@ -36,12 +37,10 @@ class MiniMP3 {
 			this.jsEvent("ended");
 		});
 		this._sound.setVolume(this._volume);
-		if (this._source !== '' && this._source !== null) {
-			this._sound.loadSound(this._source, true);
-			this._sound.stop();
-		}
+		this._loaded = false;
 		this._playing = false;
 		this._nextPosition = 0;
+		this.jsEvent("pause");
 	}
 	public function setVolume(vol:Number) {
 		vol = Math.round(100 * Math.max(0, Math.min(1, vol)));
@@ -61,6 +60,10 @@ class MiniMP3 {
 	}
 	public function play() {
 		if (!this._playing && this._sound) {
+			if (!this._loaded && this._source !== '' && this._source !== null) {
+				this._sound.loadSound(this._source, true);
+				this._loaded = true;
+			}
 			this._playing = true;
 			this._sound.start(this._nextPosition/1000);
 			this.jsEvent("play");
@@ -75,12 +78,14 @@ class MiniMP3 {
 		}
 	}
 	public function stop() {
-		this._nextPosition = 0;
-		if (this._playing) {
-			this._playing = false;
-			this._sound.stop();
+		if (this._nextPosition > 0 || this._playing) {
+			this._nextPosition = 0;
+			if (this._playing) {
+				this._playing = false;
+				this._sound.stop();
+			}
+			this.jsEvent("pause");
 		}
-		this.jsEvent("pause");
 	}
 
 	/* js API: getters */

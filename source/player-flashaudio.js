@@ -99,7 +99,7 @@ enyo.kind({
             cb = cb ? cb : enyo.nop;
             this._flEvents[evt] = cb;
         }
-        console.log("handleFlashEvent", evt, this.flash.getAll());
+        // console.log("handleFlashEvent", evt, this.flash.getAll());
         cb.apply(this, args);
     },
 
@@ -259,7 +259,7 @@ enyo.kind({
             if (!this.paused) {
                 a.play();
             }
-            console.log("a.setCurrentTime(this.currentTime);", this.currentTime);
+            // console.log("a.setCurrentTime(this.currentTime);", this.currentTime);
             a.setCurrentTime(this.currentTime);
         }
         this.registered = true;
